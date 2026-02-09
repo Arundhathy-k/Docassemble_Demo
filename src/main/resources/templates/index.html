@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${appName}">Docassemble Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .subtitle {
+            color: #666;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .info-box {
+            background: #f0f4ff;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin-top: 25px;
+            border-radius: 5px;
+            font-size: 13px;
+            color: #555;
+            line-height: 1.6;
+        }
+
+        .success-message {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 12px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            padding: 12px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .session-info {
+            background: #e7f3ff;
+            border: 1px solid #b3d9ff;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .session-info p {
+            margin: 8px 0;
+            color: #004085;
+        }
+
+        .session-info a {
+            color: #0056b3;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .session-info a:hover {
+            text-decoration: underline;
+        }
+
+        .version {
+            text-align: center;
+            color: #999;
+            font-size: 12px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 th:text="${appName}">Docassemble Demo</h1>
+        <p class="subtitle">Digital Signature & Document Generation Platform</p>
+
+        <div class="success-message" id="successMessage"></div>
+        <div class="error-message" id="errorMessage"></div>
+
+        <form id="interviewForm" onsubmit="startInterview(event)">
+            <div class="form-group">
+                <label for="userName">Full Name *</label>
+                <input type="text" id="userName" name="userName" placeholder="Enter your full name" required>
+            </div>
+
+            <div class="form-group">
+                <label for="userEmail">Email Address *</label>
+                <input type="email" id="userEmail" name="userEmail" placeholder="Enter your email address" required>
+            </div>
+
+            <div class="form-group">
+                <label for="interviewName">Interview Name</label>
+                <input type="text" id="interviewName" name="interviewName" placeholder="Leave blank for default interview" value="">
+            </div>
+
+            <button type="submit" id="submitBtn">Start Interview & Sign Document</button>
+        </form>
+
+        <div class="loading" id="loadingSpinner">
+            <div class="spinner"></div>
+            <p>Creating your interview session...</p>
+        </div>
+
+        <div class="session-info" id="sessionInfo">
+            <p><strong>Session Created Successfully!</strong></p>
+            <p>Session ID: <span id="sessionId"></span></p>
+            <p><a href="#" id="interviewLink" target="_blank">Click here to start the interview</a></p>
+            <p style="font-size: 12px; margin-top: 15px; color: #666;">
+                After you complete the interview and sign the document, you'll be able to retrieve the signed HTML document.
+            </p>
+        </div>
+
+        <div class="info-box">
+            <strong>How it works:</strong>
+            <ol style="margin-top: 10px; padding-left: 20px;">
+                <li>Enter your details and click "Start Interview & Sign Document"</li>
+                <li>A new interview session will be created with Docassemble</li>
+                <li>You'll be directed to the interview page to fill the form and sign</li>
+                <li>Once complete, the signed HTML document will be generated</li>
+            </ol>
+        </div>
+
+        <div class="version">
+            <span>Version <span th:text="${appVersion}">1.0.0</span></span>
+        </div>
+    </div>
+
+    <script>
+        function showMessage(message, type) {
+            const successMsg = document.getElementById('successMessage');
+            const errorMsg = document.getElementById('errorMessage');
+
+            if (type === 'success') {
+                successMsg.textContent = message;
+                successMsg.style.display = 'block';
+                errorMsg.style.display = 'none';
+            } else {
+                errorMsg.textContent = message;
+                errorMsg.style.display = 'block';
+                successMsg.style.display = 'none';
+            }
+        }
+
+        function hideMessages() {
+            document.getElementById('successMessage').style.display = 'none';
+            document.getElementById('errorMessage').style.display = 'none';
+        }
+
+        function startInterview(event) {
+            event.preventDefault();
+
+            const userName = document.getElementById('userName').value;
+            const userEmail = document.getElementById('userEmail').value;
+            const interviewName = document.getElementById('interviewName').value;
+
+            const loadingSpinner = document.getElementById('loadingSpinner');
+            const sessionInfo = document.getElementById('sessionInfo');
+            const submitBtn = document.getElementById('submitBtn');
+
+            // Validation
+            if (!userName.trim() || !userEmail.trim()) {
+                showMessage('Please fill in all required fields', 'error');
+                return;
+            }
+
+            // Hide previous messages and show loading
+            hideMessages();
+            loadingSpinner.style.display = 'block';
+            sessionInfo.style.display = 'none';
+            submitBtn.disabled = true;
+
+            const requestBody = {
+                userName: userName.trim(),
+                userEmail: userEmail.trim(),
+                interviewName: interviewName.trim() || null,
+                variables: {}
+            };
+
+            fetch('/api/interview/start', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(requestBody)
+            })
+            .then(response => response.json())
+            .then(data => {
+                loadingSpinner.style.display = 'none';
+                submitBtn.disabled = false;
+
+                if (data.success) {
+                    document.getElementById('sessionId').textContent = data.sessionId;
+                    document.getElementById('interviewLink').href = data.interviewUrl;
+                    sessionInfo.style.display = 'block';
+                    showMessage('Interview session created successfully!', 'success');
+
+                    // Store session ID for later use
+                    sessionStorage.setItem('sessionId', data.sessionId);
+                } else {
+                    showMessage('Error: ' + (data.error || 'Unknown error occurred'), 'error');
+                }
+            })
+            .catch(error => {
+                loadingSpinner.style.display = 'none';
+                submitBtn.disabled = false;
+                console.error('Error:', error);
+                showMessage('Error: Failed to create interview session. ' + error.message, 'error');
+            });
+        }
+
+        // Clear messages on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            hideMessages();
+        });
+    </script>
+</body>
+</html>

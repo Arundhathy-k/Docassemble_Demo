@@ -1,0 +1,79 @@
+services:
+  docassemble:
+    image: jhpyle/docassemble:latest
+    ports:
+      - "8000:80"
+      - "8443:443"
+    environment:
+      HOSTNAME: "localhost"
+      ENVIRONMENT_TAKES_PRECEDENCE: "True"
+      LETSENCRYPT_EMAIL: "admin@example.com"
+      DAPICKLE: "1"
+      PGSQL_HOST: "docassemble-postgresql"
+      PGSQL_USER: "docassemble"
+      PGSQL_PASSWORD: "docassemble"
+      PGSQL_DB: "docassemble"
+      REDIS_HOST: "docassemble-redis"
+      REDIS_MAXMEMORY: "536870912"
+      WORKERS: "2"
+      LOG_LEVEL: "info"
+      SECURE_LOG: "false"
+      ALLOWED_HOSTS: "['localhost', 'docassemble', '127.0.0.1']"
+      DEVELOPER_MODE: "True"
+    depends_on:
+      - docassemble-postgresql
+      - docassemble-redis
+    networks:
+      - docassemble-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/api/user/info"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    volumes:
+      - docassemble-files:/usr/share/docassemble/local
+      - docassemble-data:/var/www/docassemble
+
+  docassemble-postgresql:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: "docassemble"
+      POSTGRES_USER: "docassemble"
+      POSTGRES_PASSWORD: "docassemble"
+    ports:
+      - "5432:5432"
+    networks:
+      - docassemble-network
+    volumes:
+      - docassemble-postgresql-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U docassemble"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  docassemble-redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - docassemble-network
+    volumes:
+      - docassemble-redis-data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  docassemble-files:
+  docassemble-data:
+  docassemble-postgresql-data:
+  docassemble-redis-data:
+
+networks:
+  docassemble-network:
+    driver: bridge
